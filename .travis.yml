@@ -1,0 +1,6 @@
+language: scala
+dist: xenial
+scala:
+  - 2.12.2
+jdk:
+  - openjdk11
