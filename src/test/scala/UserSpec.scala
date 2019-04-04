@@ -27,10 +27,19 @@ class UserSpec(_system: ActorSystem)
       response.value should ===(None)
     }
 
-    "ignores unknown messages" in {
+    "stops after generating key" in {
       val probe = TestProbe()
       val user = system.actorOf(User.props("t-bast"))
       probe.watch(user)
+
+      user.tell(User.GenerateKey(42), probe.ref)
+      probe.expectMsgType[User.PrivateKey]
+      probe.expectTerminated(user, 250.milliseconds)
+    }
+
+    "ignores unknown messages" in {
+      val probe = TestProbe()
+      val user = system.actorOf(User.props("t-bast"))
 
       user.tell("master key please?", probe.ref)
       probe.expectNoMessage(250.milliseconds)
