@@ -10,34 +10,29 @@ class UserSpec(_system: ActorSystem)
     with WordSpecLike
     with BeforeAndAfterAll {
 
-  def this() = this(ActorSystem("DeviceSpec"))
+  def this() = this(ActorSystem("UserSpec"))
 
   override def afterAll: Unit = {
     shutdown(system)
   }
 
   "A User Actor" should {
-    "generates private key on demand" in {
+    "generate private keys on demand" in {
       val probe = TestProbe()
       val user = system.actorOf(User.props("t-bast"))
 
-      user.tell(User.GenerateKey(42), probe.ref)
-      val response = probe.expectMsgType[User.PrivateKey]
-      response.requestId should ===(42L)
-      response.value should ===(None)
+      user.tell(User.GenerateKey(42, "2018"), probe.ref)
+      val response1 = probe.expectMsgType[User.PrivateKey]
+      response1.requestId should ===(42L)
+      response1.value should ===(None)
+
+      user.tell(User.GenerateKey(43, "2019"), probe.ref)
+      val response2 = probe.expectMsgType[User.PrivateKey]
+      response2.requestId should ===(43L)
+      response2.value should ===(None)
     }
 
-    "stops after generating key" in {
-      val probe = TestProbe()
-      val user = system.actorOf(User.props("t-bast"))
-      probe.watch(user)
-
-      user.tell(User.GenerateKey(42), probe.ref)
-      probe.expectMsgType[User.PrivateKey]
-      probe.expectTerminated(user, 250.milliseconds)
-    }
-
-    "ignores unknown messages" in {
+    "ignore unknown messages" in {
       val probe = TestProbe()
       val user = system.actorOf(User.props("t-bast"))
 
