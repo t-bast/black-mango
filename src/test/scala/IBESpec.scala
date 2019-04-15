@@ -34,30 +34,30 @@ class IBESpec extends WordSpec with Matchers {
     "encrypt and decrypt" in {
       val sk = ibe.extract("elliot@ecorp.com")
       val message = "are you seeing what I'm seeing?"
-      val (c1, c2) = ibe.encrypt("elliot@ecorp.com", message.getBytes(StandardCharsets.UTF_8))
-      val decrypted = new String(ibe.decrypt(sk, c1, c2), StandardCharsets.UTF_8)
+      val encrypted = ibe.encrypt("elliot@ecorp.com", message.getBytes(StandardCharsets.UTF_8))
+      val decrypted = new String(ibe.decrypt(sk, encrypted), StandardCharsets.UTF_8)
       decrypted should ===(message)
     }
 
     "decrypt invalid ciphertext bytes" in {
       val sk = ibe.extract("elliot@ecorp.com")
       val message = "Car je ne puis trouver parmi ces pâles roses"
-      val (c1, c2) = ibe.encrypt("elliot@ecorp.com", message.getBytes(StandardCharsets.UTF_8))
-      val invalidCiphertext = c2 map (b => (b + 1).toByte)
+      val EncryptedPayload(rCommit, ciphertext) = ibe.encrypt("elliot@ecorp.com", message.getBytes(StandardCharsets.UTF_8))
+      val invalidCiphertext = ciphertext map (b => (b + 1).toByte)
 
       assertThrows[AEADBadTagException] {
-        ibe.decrypt(sk, c1, invalidCiphertext)
+        ibe.decrypt(sk, EncryptedPayload(rCommit, invalidCiphertext))
       }
     }
 
     "decrypt invalid ciphertext curve point" in {
       val sk = ibe.extract("elliot@ecorp.com")
       val message = "Une fleur qui ressemble à mon rouge idéal."
-      val (c1, c2) = ibe.encrypt("elliot@ecorp.com", message.getBytes(StandardCharsets.UTF_8))
-      val invalidPoint = c1.square().getImmutable
+      val EncryptedPayload(rCommit, ciphertext) = ibe.encrypt("elliot@ecorp.com", message.getBytes(StandardCharsets.UTF_8))
+      val invalidPoint = rCommit.square().getImmutable
 
       assertThrows[AEADBadTagException] {
-        ibe.decrypt(sk, invalidPoint, c2)
+        ibe.decrypt(sk, EncryptedPayload(invalidPoint, ciphertext))
       }
     }
   }
