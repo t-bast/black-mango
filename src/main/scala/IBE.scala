@@ -1,3 +1,4 @@
+import com.google.crypto.tink.subtle.ChaCha20Poly1305
 import it.unisa.dia.gas.plaf.jpbc.pairing.a.TypeACurveGenerator
 import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory
 import it.unisa.dia.gas.jpbc.Element
@@ -65,14 +66,12 @@ case class IBE() {
 
   /**
     * Encrypt a message for the given user.
-    * TODO: to allow encrypting arbitrary-sized messages, use a stream cipher
-    * keyed with the hash. Try Google's tink with ChaCha20-Poly1305.
     *
     * @param id of the recipient.
     * @param message to encrypt.
     * @return message encryption.
     */
-  def encrypt(id: String, message: Array[Byte]) = {
+  def encrypt(id: String, message: Array[Byte]): (Element, Array[Byte]) = {
     val q = mapToPoint(id)
     val rb = Array.fill(qBits / 8)(0.byteValue)
     rng.nextBytes(rb)
@@ -81,11 +80,9 @@ case class IBE() {
 
     val c1 = P.mul(r).getImmutable
 
-    // TODO: create a stream the same size of the message.
     val h = MessageDigest.getInstance("SHA-256").digest(gid.pow(r).toBytes)
-    val c2 = (message zip h) map {
-      case (b1, b2) => (b1 ^ b2).toByte
-    }
+    val cipher = new ChaCha20Poly1305(h)
+    val c2 = cipher.encrypt(message, Array.empty)
 
     (c1, c2)
   }
@@ -98,12 +95,11 @@ case class IBE() {
     * @param c2 second part of the randomness (message).
     * @return the original message.
     */
-  def decrypt(sk: Element, c1: Element, c2: Array[Byte]) = {
+  def decrypt(sk: Element, c1: Element, c2: Array[Byte]): Array[Byte] = {
     val gidr = pairing.pairing(sk, c1)
     val h = MessageDigest.getInstance("SHA-256").digest(gidr.toBytes)
-    val message = (c2 zip h) map {
-      case (b1, b2) => (b1 ^ b2).toByte
-    }
+    val cipher = new ChaCha20Poly1305(h)
+    val message = cipher.decrypt(c2, Array.empty)
 
     message
   }

@@ -10,7 +10,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-  "com.github.stefano81" % "jpbc" % "v2.0.0-m"
+  "com.github.stefano81" % "jpbc" % "v2.0.0-m",
+  "com.google.crypto.tink" % "tink" % "1.2.2"
 )
 
 // We need jitpack to import jPBC (only packaged as a jar file).
