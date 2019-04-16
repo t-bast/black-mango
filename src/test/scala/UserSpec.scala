@@ -36,6 +36,22 @@ class UserSpec(_system: ActorSystem)
       response1.value should !==(response2.value)
     }
 
+    "encrypt and decrypt messages on demand" in {
+      val probe = TestProbe()
+      val user = system.actorOf(User.props("t-bast", params))
+
+      val message = "Rappelez-vous l’objet que nous vîmes, mon âme,"
+      user.tell(User.Encrypt(42, "2019", message), probe.ref)
+
+      val response = probe.expectMsgType[User.EncryptedMessage]
+      response.requestId should ===(42L)
+
+      user.tell(User.Decrypt(43, "2019", response.ciphertext), probe.ref)
+      val decrypted = probe.expectMsgType[User.DecryptedMessage]
+      decrypted.requestId should ===(43L)
+      decrypted.message should ===(message)
+    }
+
     "ignore unknown messages" in {
       val probe = TestProbe()
       val user = system.actorOf(User.props("t-bast", params))
