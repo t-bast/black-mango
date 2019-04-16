@@ -14,6 +14,8 @@ object KeyGenCenter {
 class KeyGenCenter(id: String) extends Actor with ActorLogging {
   import KeyGenCenter._
 
+  private val params = IBE.generateParams()
+
   var users = Map.empty[String, ActorRef]
   var userIds = Map.empty[ActorRef, String]
 
@@ -24,7 +26,7 @@ class KeyGenCenter(id: String) extends Actor with ActorLogging {
           userActor forward User.GenerateKey(requestId, label)
         case None =>
           log.info("Creating user actor for {}", user)
-          val userActor = context.actorOf(User.props(user), s"user-$user")
+          val userActor = context.actorOf(User.props(user, params), s"user-$user")
           context.watch(userActor)
 
           users += user -> userActor

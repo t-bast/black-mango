@@ -24,7 +24,7 @@ class KeyGenCenterSpec(_system: ActorSystem)
       keyGenCenter.tell(KeyGenCenter.GenerateKey(42, "t-bast", "2019"), probe.ref)
       val response = probe.expectMsgType[User.PrivateKey]
       response.requestId should ===(42L)
-      response.value should ===(None)
+      response.value should !==(None)
 
       val user = probe.lastSender
       user.path.name should ===("user-t-bast")

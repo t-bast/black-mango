@@ -17,24 +17,28 @@ class UserSpec(_system: ActorSystem)
   }
 
   "A User Actor" should {
+    val params = IBE.generateParams()
+
     "generate private keys on demand" in {
       val probe = TestProbe()
-      val user = system.actorOf(User.props("t-bast"))
+      val user = system.actorOf(User.props("t-bast", params))
 
       user.tell(User.GenerateKey(42, "2018"), probe.ref)
       val response1 = probe.expectMsgType[User.PrivateKey]
       response1.requestId should ===(42L)
-      response1.value should ===(None)
+      response1.value should !==(None)
 
       user.tell(User.GenerateKey(43, "2019"), probe.ref)
       val response2 = probe.expectMsgType[User.PrivateKey]
       response2.requestId should ===(43L)
-      response2.value should ===(None)
+      response2.value should !==(None)
+
+      response1.value should !==(response2.value)
     }
 
     "ignore unknown messages" in {
       val probe = TestProbe()
-      val user = system.actorOf(User.props("t-bast"))
+      val user = system.actorOf(User.props("t-bast", params))
 
       user.tell("master key please?", probe.ref)
       probe.expectNoMessage(250.milliseconds)
