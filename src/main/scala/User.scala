@@ -6,7 +6,7 @@ object User {
   def props(id: String, params: IBE.Params): Props = Props(new User(id, params))
 
   final case class GenerateKey(requestId: Long, label: String)
-  final case class PrivateKey(requestId: Long, value: Option[Element])
+  final case class PrivateKey(requestId: Long, value: Element)
 
   final case class Encrypt(requestId: Long, label: String, message: String)
   final case class EncryptedMessage(requestId: Long, ciphertext: IBE.EncryptedPayload)
@@ -30,11 +30,11 @@ class User(id: String, params: IBE.Params) extends Actor with ActorLogging {
   override def receive: Receive = {
     case GenerateKey(requestId, label) =>
       userKeys.get(label) match {
-        case Some(key) => sender() ! PrivateKey(requestId, Some(key))
+        case Some(key) => sender() ! PrivateKey(requestId, key)
         case None =>
           log.info("Generating key for {}|{}", id, label)
           val key = ibe.genUserKey(s"$id|$label")
-          sender() ! PrivateKey(requestId, Some(key))
+          sender() ! PrivateKey(requestId, key)
       }
     case Encrypt(requestId, label, message) =>
       log.info("Encrypting message for {}|{}", id, label)

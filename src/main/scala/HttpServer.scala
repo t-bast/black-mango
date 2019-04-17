@@ -1,18 +1,29 @@
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContextExecutor
 import scala.io.StdIn
+import spray.json.DefaultJsonProtocol
 
-trait IbeRoutes {
+trait JsonSupport extends SprayJsonSupport {
+  import DefaultJsonProtocol._
+
+  case class PrivateKey(key: Array[Byte])
+
+  implicit val keyJsonFormat = jsonFormat1(PrivateKey)
+}
+
+trait IbeRoutes extends JsonSupport {
   // These should be provided by the app.
   implicit def system: ActorSystem
+
   def keyGenCenter: ActorRef
 
   implicit lazy val timeout: Timeout = Timeout(5.seconds)
@@ -20,12 +31,16 @@ trait IbeRoutes {
   lazy val ibeRoutes: Route =
     path("healthz") {
       get {
-        complete(HttpEntity("ok"))
+        complete("ok")
       }
     } ~
       path("keys" / Segment / Segment) { (user: String, label: String) =>
         get {
-          complete(s"key generated for $user with label $label")
+          val key = (keyGenCenter ? KeyGenCenter.GenerateKey(0L, user, label)).mapTo[User.PrivateKey]
+          onSuccess(key) { key =>
+            val response = PrivateKey(key.value.toBytes)
+            complete(response)
+          }
         }
       }
 }
