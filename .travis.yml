@@ -4,6 +4,10 @@ scala:
   - 2.12.2
 jdk:
   - openjdk11
+script:
+  - sbt clean coverage test coverageReport
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
 cache:
   directories:
     - $HOME/.ivy2/cache
