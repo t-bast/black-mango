@@ -30,6 +30,25 @@ class KeyGenCenterSpec(_system: ActorSystem)
       user.path.name should ===("user-t-bast")
     }
 
+    "forward encryption and decryption requests to a user actor" in {
+      val probe = TestProbe()
+      val keyGenCenter = system.actorOf(KeyGenCenter.props("ECorp"))
+
+      keyGenCenter.tell(KeyGenCenter.Encrypt(42, "t-bast", "poems", "l'idéal"), probe.ref)
+      val response = probe.expectMsgType[User.EncryptedMessage]
+      response.requestId should ===(42L)
+      response.ciphertext.randomCommitment.isZero should ===(false)
+      response.ciphertext.ciphertext.length should !==(0)
+
+      val user = probe.lastSender
+      user.path.name should ===("user-t-bast")
+
+      keyGenCenter.tell(KeyGenCenter.Decrypt(43, "t-bast", "poems", response.ciphertext), probe.ref)
+      val decrypted = probe.expectMsgType[User.DecryptedMessage]
+      decrypted.requestId should ===(43L)
+      decrypted.message should ===("l'idéal")
+    }
+
     "handle killed user actors" in {
       val probe = TestProbe()
       val keyGenCenter = system.actorOf(KeyGenCenter.props("ECorp"))

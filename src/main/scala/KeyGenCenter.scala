@@ -4,6 +4,8 @@ object KeyGenCenter {
   def props(id: String): Props = Props(new KeyGenCenter(id))
 
   final case class GenerateKey(requestId: Long, user: String, label: String)
+  final case class Encrypt(requestId: Long, user: String, label: String, message: String)
+  final case class Decrypt(requestId: Long, user: String, label: String, ciphertext: IBE.EncryptedPayload)
 }
 
 /**
@@ -19,19 +21,44 @@ class KeyGenCenter(id: String) extends Actor with ActorLogging {
   var users = Map.empty[String, ActorRef]
   var userIds = Map.empty[ActorRef, String]
 
+  def createActor(user: String): ActorRef = {
+    log.info("Creating user actor for {}", user)
+    val userActor = context.actorOf(User.props(user, params), s"user-$user")
+    context.watch(userActor)
+
+    users += user -> userActor
+    userIds += userActor -> user
+
+    userActor
+  }
+
+  // TODO: there is a lot of duplication here, should be refactored.
   override def receive: Receive = {
     case GenerateKey(requestId, user, label) =>
       users.get(user) match {
         case Some(userActor) =>
           userActor forward User.GenerateKey(requestId, label)
         case None =>
-          log.info("Creating user actor for {}", user)
-          val userActor = context.actorOf(User.props(user, params), s"user-$user")
-          context.watch(userActor)
-
-          users += user -> userActor
-          userIds += userActor -> user
+          val userActor = createActor(user)
           userActor forward User.GenerateKey(requestId, label)
+      }
+
+    case Encrypt(requestId, user, label, message) =>
+      users.get(user) match {
+        case Some(userActor) =>
+          userActor forward User.Encrypt(requestId, label, message)
+        case None =>
+          val userActor = createActor(user)
+          userActor forward User.Encrypt(requestId, label, message)
+      }
+
+    case Decrypt(requestId, user, label, ciphertext) =>
+      users.get(user) match {
+        case Some(userActor) =>
+          userActor forward User.Decrypt(requestId, label, ciphertext)
+        case None =>
+          val userActor = createActor(user)
+          userActor forward User.Decrypt(requestId, label, ciphertext)
       }
 
     case Terminated(userActor) =>
