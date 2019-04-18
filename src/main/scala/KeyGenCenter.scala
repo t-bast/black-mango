@@ -1,11 +1,12 @@
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+import it.unisa.dia.gas.plaf.jpbc.pairing.PairingFactory
 
 object KeyGenCenter {
   def props(id: String): Props = Props(new KeyGenCenter(id))
 
   final case class GenerateKey(requestId: Long, user: String, label: String)
   final case class Encrypt(requestId: Long, user: String, label: String, message: String)
-  final case class Decrypt(requestId: Long, user: String, label: String, ciphertext: IBE.EncryptedPayload)
+  final case class Decrypt(requestId: Long, user: String, label: String, commit: Array[Byte], ciphertext: Array[Byte])
 }
 
 /**
@@ -52,13 +53,18 @@ class KeyGenCenter(id: String) extends Actor with ActorLogging {
           userActor forward User.Encrypt(requestId, label, message)
       }
 
-    case Decrypt(requestId, user, label, ciphertext) =>
+    case Decrypt(requestId, user, label, commit, ciphertext) =>
+      val encrypted = IBE.EncryptedPayload(
+        params.pointFromBytes(commit),
+        ciphertext
+      )
+
       users.get(user) match {
         case Some(userActor) =>
-          userActor forward User.Decrypt(requestId, label, ciphertext)
+          userActor forward User.Decrypt(requestId, label, encrypted)
         case None =>
           val userActor = createActor(user)
-          userActor forward User.Decrypt(requestId, label, ciphertext)
+          userActor forward User.Decrypt(requestId, label, encrypted)
       }
 
     case Terminated(userActor) =>

@@ -15,6 +15,11 @@ class IBESpec extends WordSpec with Matchers {
       params.masterPublicKey.isZero should ===(false)
     }
 
+    "convert points to and from bytes" in {
+      val generator = params.pointFromBytes(params.generator.toBytes)
+      generator should ===(params.generator)
+    }
+
     "extract non-degenerate user keys" in {
       val sk = ibe.genUserKey("elliot@ecorp.com")
       sk.isOne should ===(false)

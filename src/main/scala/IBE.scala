@@ -51,7 +51,16 @@ object IBE {
                      pairingParams: PairingParameters,
                      generator: Element,
                      masterPublicKey: Element,
-                     masterKey: Array[Byte])
+                     masterKey: Array[Byte]) {
+    /**
+      * Converts a serialized curve point back to its object form.
+      *
+      * @param b serialized curve point.
+      * @return the curve point object.
+      */
+    def pointFromBytes(b: Array[Byte]): Element =
+      PairingFactory.getPairing(pairingParams).getG1.newElementFromBytes(b)
+  }
 
   /**
     * A message encrypted with IBE.

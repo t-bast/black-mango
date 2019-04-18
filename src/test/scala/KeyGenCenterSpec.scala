@@ -43,7 +43,13 @@ class KeyGenCenterSpec(_system: ActorSystem)
       val user = probe.lastSender
       user.path.name should ===("user-t-bast")
 
-      keyGenCenter.tell(KeyGenCenter.Decrypt(43, "t-bast", "poems", response.ciphertext), probe.ref)
+      keyGenCenter.tell(KeyGenCenter.Decrypt(
+        43,
+        "t-bast",
+        "poems",
+        response.ciphertext.randomCommitment.toBytes,
+        response.ciphertext.ciphertext,
+      ), probe.ref)
       val decrypted = probe.expectMsgType[User.DecryptedMessage]
       decrypted.requestId should ===(43L)
       decrypted.message should ===("l'idéal")
